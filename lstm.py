@@ -67,6 +67,9 @@ def load_csvdata(rawdata, time_steps, seperate=False):
 def generate_data(fct, x, time_steps, seperate=False):
     """generates data with based on a function fct"""
     data = fct(x)
+    print data.columns
+    print data.head()
+
     if not isinstance(data, pd.DataFrame):
         data = pd.DataFrame(data)
     train_x, val_x, test_x = prepare_data(data['a'] if seperate else data, time_steps)
