@@ -102,13 +102,13 @@ class DarpaPlayer(object):
     Modified Class for probabilistic state machine 
     Changes are in order to make it play in our simulation
     '''
-    def __init__(self, N, initial_state=None, seed=None):
+    def __init__(self, N, initial_state=None,probs = 0.6 ,seed=None):
 
         # store off inputs to be used during start()
         self._initial_state = initial_state
         self._seed = seed
         self._N = N
-        self._stick_to_path_prob = 0.6
+        self._stick_to_path_prob = probs
         self.start()
 
     def _generate_transition_matrices(self, num_states, stick_to_path_prob):
@@ -348,7 +348,7 @@ class Hurdle_MC:
         l= plt.axhline(y=last*2,xmin=0, xmax=1 ,linewidth=2, color='ForestGreen',label='Threshold')
         plt.ylabel('Score')
         plt.xlabel('Turn')        
-        plt.title("Random Player Score over Time (Turns) for M = {0}".format(self.PlayerD.M))
+        #plt.title("Random Player Score over Time (Turns) for M = {0}".format(self.PlayerD.M))
         plt.legend(loc='center left', bbox_to_anchor=(1, 0.5))
         
         
