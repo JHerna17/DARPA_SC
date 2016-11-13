@@ -256,7 +256,7 @@ class DarpaPlayer(object):
         return rand_ind, np.random.choice(range(1,self._N))
 
     def restart(self, Max_N):
-        self.__init__(Max_N)
+        self.__init__(Max_N,probs=self._stick_to_path_prob)
         return True
 
 
