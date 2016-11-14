@@ -208,6 +208,7 @@ class DarpaPlayer(object):
         self.cum_sum_mat = np.zeros((self._N, self._N, self._N))
 
         # set up transition matrices
+	print self._stick_to_path_prob
         self._generate_transition_matrices(self._N, self._stick_to_path_prob)
 
 
@@ -256,6 +257,7 @@ class DarpaPlayer(object):
         return rand_ind, np.random.choice(range(1,self._N))
 
     def restart(self, Max_N):
+	print self._stick_to_path_prob
         self.__init__(Max_N,probs=self._stick_to_path_prob)
         return True
 
