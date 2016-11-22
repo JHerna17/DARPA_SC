@@ -260,11 +260,122 @@ class DarpaPlayer(object):
         return True
 
 
+class JorgePlayer:
+    ''' 
+    A Simple class that simulate a base Player based on Jorge's prediction
+    for the #3 Hurdle of the DARPA Competition
+    '''
+    import numpy as np
+    from sklearn.ensemble import RandomForestClassifier 
+    import itertools
+   
+    def __init__ (self, num_states=10,retrain=500):
         
+        self._type = "Jorge"
+        self.N = num_states                        ## Random N-states (NOT USED)
+        self.M = num_states                        ##  M-outputs        
+        self.retrain = retrain            ## Retrain after #retrain turns of the game        
+        self.Dataset, self.BestPlayTable = self.createDataset()
+        self.record = pd.DataFrame( columns=['Player_Last','Last','pred','Player_Play'])
+        
+        self.turn = 0
+        self.PlayerLast = -1
+        self.notgood = 0
+                                    
+    def start(self):
 
+        PlayerPlay,pred = [np.random.choice(range(self.M)),np.random.choice(range(self.M))]
+        self.PlayerLast = PlayerPlay
+        return pred,PlayerPlay
+        
+    def step(self, reward ,Last):
+        
+        self.turn = self.turn +1
+        
+        
+        if self.turn < self.retrain:
+            PlayerPlay,pred = self.start()
+                    
+        else:
+            # check if is time to train 
+            if self.turn%self.retrain == 0:
+                # Train
+                self.Train()
+                    
+            PlayerPlay,pred = self.predict(Last)            
+                 
+        self.appendData(Last,self.PlayerLast, pred,PlayerPlay)
 
+        self.PlayerLast = PlayerPlay
+        
+        return [pred,PlayerPlay]
+    
+    
+    def updateBestPlay(self,Player_Last, Last):
+        if PlayerPlay == Last:
+            self.BestPlayTable[self.BestPlayTable.index == Player_Last] = self.BestPlayTable[self.BestPlayTable.index == Player_Last] -1
+        else:
+            self.BestPlayTable[self.BestPlayTable.index == Player_Last] = self.BestPlayTable[self.BestPlayTable.index == Player_Last] +1
+            
+    
+    def updateDataset(self):  
+        
+        df= self.record
+        df['Label'] = df.Last.shift(-1)
+        df['prob'] = df.Last.shift(-1)
+        self.Dataset =df.groupby(['Player_Play','Last']).Label.agg(lambda x:x.value_counts().index[0]).reset_index()                                
+        dataset2 = df.groupby(['Player_Play','Last']).prob.agg(lambda x:np.float(x.value_counts().values[0])/x.value_counts().values.sum()).reset_index()
+        self.Dataset = self.Dataset.merge(dataset2, on=['Player_Play','Last'])  
+        
+    def createDataset(self):                
+        
+        df = pd.DataFrame(columns=['Player_Play','Last','pred','Player_Last','pred'])
+        #table to keep score of our best plays 
+        table = pd.DataFrame(index=range(self.N), columns=['Points'])
+        return df, table
+    
+    
+    def appendData(self, Last, Player_Last,pred,Play):
+                
+        self.record = self.record.append(pd.DataFrame([[Last, Player_Last,pred,Play]], columns=['Last','Player_Last','pred','Player_Play']),ignore_index=True)
+        
+    def Train(self):                
+        
+        print "Training.. "
+        # Training is really update the Dataset
+        self.updateDataset()
+        
+        return True    
 
-# In[31]:
+    
+    def predict(self,Last):
+        
+        good = False
+        for i in range(10):
+            play = self.Dataset[(self.Dataset.Last == Last)]\
+            .sort(columns= 'prob', ascending = False)\
+            .head(1).Player_Play.iloc[0]
+            
+            pred = self.Dataset[(self.Dataset.Player_Play == play) & (self.Dataset.Last == Last)].Label.iloc[0]
+            
+            if play != pred:
+                good = True
+                break
+        
+        if not good:
+            self.notgood = self.notgood+1
+            play,pred = np.random.randint(0,self.N,size=2)               
+
+        
+        return play,pred # P = More Likely, D = Less Likely 
+        
+    def restart(self):
+        print "Restarting.. "
+        self.__init__(self.N,self.retrain)
+        return True
+               
+        
+                
 
 class Hurdle_MC:
     ''' Simple Class to Emulate the 3rd hurdle of the DARPA Competition'''
@@ -294,13 +405,13 @@ class Hurdle_MC:
         self.BestPlayer = None
         
         
-    def _Score(self,A,P,D):
+    def _Score(self,Play,pred,darpa_state):
         payoff = 0 
-        if A==D:  
+        if Play==darpa_state:  
             payoff = payoff-12
-        if A!=D:
+        if Play!=darpa_state:
             payoff = payoff+1
-        if P==D:
+        if pred==darpa_state:
             payoff = payoff+3
             
         return payoff
@@ -314,12 +425,12 @@ class Hurdle_MC:
         else:            
             self.PlayerA.restart()
         
-        [A,P] = self.PlayerA.start()
+        [P,A] = self.PlayerA.start()
         
         for turn in range(self.turns-1):# All turns but the last turn
             [D,x] = self.PlayerD.step(A) # DARPA Turn with given output A
             self.score[turn] = self._Score(A,P,D)# Score previous turn
-            [A,P] = self.PlayerA.step(D) # Make the play for next turn
+            [P,A] = self.PlayerA.step(self.score[turn-1],D) # Make the play for next turn
             
         self.score[self.turns-1] = self._Score(A,P,D)
         
