@@ -10,6 +10,7 @@
 
 import random
 import numpy as np
+import pandas as pd
 
 
 # In[2]:
@@ -269,29 +270,27 @@ class JorgePlayer:
     from sklearn.ensemble import RandomForestClassifier 
     import itertools
    
-    def __init__ (self, num_states=10,retrain=500):
+    def __init__ (self, N,retrain=500):
         
         self._type = "Jorge"
-        self.N = num_states                        ## Random N-states (NOT USED)
-        self.M = num_states                        ##  M-outputs        
+        self.N = N                        ## Random N-states (NOT USED)
+        self.M = N                        ##  M-outputs        
         self.retrain = retrain            ## Retrain after #retrain turns of the game        
         self.Dataset, self.BestPlayTable = self.createDataset()
         self.record = pd.DataFrame( columns=['Player_Last','Last','pred','Player_Play'])
         
         self.turn = 0
         self.PlayerLast = -1
-        self.notgood = 0
                                     
     def start(self):
 
-        PlayerPlay,pred = [np.random.choice(range(self.M)),np.random.choice(range(self.M))]
-        self.PlayerLast = PlayerPlay
-        return pred,PlayerPlay
+        D,P = [np.random.choice(range(self.M)),np.random.choice(range(self.M))]
+        self.Prev_D = D
+        return D,P
         
-    def step(self, reward ,Last):
+    def step(self,reward ,Last):
         
         self.turn = self.turn +1
-        
         
         if self.turn < self.retrain:
             PlayerPlay,pred = self.start()
@@ -351,8 +350,8 @@ class JorgePlayer:
     def predict(self,Last):
         
         good = False
-        for i in range(10):
-            play = self.Dataset[(self.Dataset.Last == Last)]\
+        for i in range(1,11):
+            play = self.Dataset[(self.Dataset.Last == Last) & (self.Dataset.Player_Play != self.Dataset.Label)]\
             .sort(columns= 'prob', ascending = False)\
             .head(1).Player_Play.iloc[0]
             
@@ -363,7 +362,6 @@ class JorgePlayer:
                 break
         
         if not good:
-            self.notgood = self.notgood+1
             play,pred = np.random.randint(0,self.N,size=2)               
 
         
@@ -373,10 +371,8 @@ class JorgePlayer:
         print "Restarting.. "
         self.__init__(self.N,self.retrain)
         return True
-               
-        
-                
-
+                           
+                               
 class Hurdle_MC:
     ''' Simple Class to Emulate the 3rd hurdle of the DARPA Competition'''
     
