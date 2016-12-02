@@ -11,7 +11,7 @@ from hurdle2_rpc import Hurdle2Scoring
 from hurdle2_rpc.ttypes import BinContents as BC
 
 # REQUIRED IMPORTS 
-import UNT_hurdle2
+from UNT_hurdle2 import UNT_hurdle2
 from sklearn.externals import joblib
 import pandas as pd
 import scipy
@@ -65,7 +65,7 @@ def make_random_guess(num_bins):
 
 def make_prediction(sample_file):
     h2 = UNT_hurdle2('clf/RF.pkl','clf/LabelEncoder.pkl')
-    answer = h2.make_prediction(self.sample_filename)
+    answer = h2.make_prediction(sample_file).tolist()
 
     return answer
 
